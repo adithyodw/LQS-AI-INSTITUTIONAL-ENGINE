@@ -2037,7 +2037,6 @@ void ManageOpenTrade()
        bool   ib=(g_pos.PositionType()==POSITION_TYPE_BUY);
        double opx=g_pos.PriceOpen(),csl=g_pos.StopLoss(),ctp=g_pos.TakeProfit();
        double cur=ib?g_sym.Bid():g_sym.Ask(),sld=MathAbs(opx-csl),nsl=csl;
-       double minPriceDist=g_ATR*0.2; // Minimum distance from current price to new SL
 
        if(InpStaleExitBars>0&&!g_tp1Hit&&g_opOpenTime>0)
          { int barsSinceOpen=iBarShift(_Symbol,_Period,g_opOpenTime);
@@ -2070,25 +2069,41 @@ void ManageOpenTrade()
             if(ib&&vs2>nsl) nsl=vs2;
             if(!ib&&vs2<nsl&&nsl>0) nsl=vs2;}}
 
-       // Safety checks before modification - STRICT to prevent MT5 rejections
+       // Safety gate before modification — broker Stops/Freeze level aware.
+       // The "close to market" rejection is caused by the broker's
+       // SYMBOL_TRADE_STOPS_LEVEL / SYMBOL_TRADE_FREEZE_LEVEL constraints.
        if(nsl!=csl&&nsl!=0.0)
-         { // Check 1: New SL must be at least 1.0 ATR away from current price (STRICT)
-           double strictPriceDist=g_ATR*1.0;
-           bool slTooClose=(ib&&nsl>cur-strictPriceDist)||(!ib&&nsl<cur+strictPriceDist);
+         {
+          long   stopsLvl =(long)SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL);
+          long   freezeLvl=(long)SymbolInfoInteger(_Symbol,SYMBOL_TRADE_FREEZE_LEVEL);
+          double bid=g_sym.Bid(),ask=g_sym.Ask(),spread=ask-bid;
+          double brokerBuf=(double)MathMax(stopsLvl,freezeLvl)*_Point;
+          // Buffer = strictest of: broker level, 4x spread, 0.4 ATR.
+          double safeBuf  =MathMax(brokerBuf,MathMax(spread*4.0,g_ATR*0.4));
+          if(safeBuf<30*_Point) safeBuf=30*_Point;   // absolute floor
 
-           // Check 2: SL and TP must have minimum 1.0 ATR separation (STRICT - was 0.5)
-           double slTpDist=ctp>0?MathAbs(ctp-nsl):999999;
-           bool slTpTooClose=(slTpDist<g_ATR*1.0);
+          // Clamp candidate SL to a broker-safe distance from current price
+          if(ib) nsl=MathMin(nsl,bid-safeBuf);       // BUY  SL must sit below Bid
+          else   nsl=MathMax(nsl,ask+safeBuf);       // SELL SL must sit above Ask
+          nsl=g_sym.NormalizePrice(nsl);
 
-           // Check 3: Don't trail if we're already too close to TP (2 ATR threshold)
-           bool nearTP=(ctp>0&&MathAbs(csl-ctp)<g_ATR*2.0);
+          // SL must keep a safe gap from TP, and must be a genuine improvement
+          bool slTpOK  =(ctp<=0)||(ib?(nsl<ctp-safeBuf):(nsl>ctp+safeBuf));
+          bool improves=(ib?(nsl>csl):(csl<=0||nsl<csl));
+          // Freeze level: cannot modify while existing SL/TP is inside freeze band
+          bool freezeOK=true;
+          if(freezeLvl>0)
+            { double frz=(double)freezeLvl*_Point;
+              if(ib){ if(csl>0&&bid-csl<frz) freezeOK=false;
+                      if(ctp>0&&ctp-bid<frz) freezeOK=false; }
+              else  { if(csl>0&&csl-ask<frz) freezeOK=false;
+                      if(ctp>0&&ask-ctp<frz) freezeOK=false; } }
 
-           if(!slTooClose&&!slTpTooClose&&!nearTP)
+          if(slTpOK&&improves&&freezeOK&&MathAbs(nsl-csl)>=_Point)
              g_tr.PositionModify(g_pos.Ticket(),nsl,ctp);
-           else if(InpVerbose)
-             Log(StringFormat("[MODIFY SKIPPED] close=%s|%.5f sep=%s|%.5f nearTP=%s dist=%.5f nsl=%.5f ctp=%.5f",
-                 B2S(slTooClose),strictPriceDist,B2S(slTpTooClose),g_ATR*1.0,B2S(nearTP),
-                 ctp>0?MathAbs(csl-ctp):0,nsl,ctp));
+          else if(InpVerbose)
+             Log(StringFormat("[MODIFY SKIPPED] slTpOK=%s impr=%s frzOK=%s nsl=%.5f csl=%.5f bid=%.5f ask=%.5f buf=%.0fpt",
+                 B2S(slTpOK),B2S(improves),B2S(freezeOK),nsl,csl,bid,ask,safeBuf/_Point));
          }
     } }
 
