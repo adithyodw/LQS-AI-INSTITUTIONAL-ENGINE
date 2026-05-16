@@ -141,7 +141,7 @@ input double InpTrendADX       = 20.0;
 input double InpStrongADX      = 35.0;
 input double InpVolPctile      = 75.0;
 
-input group "=== RISK MANAGEMENT — LOT SIZING ==="
+input group "=== RISK MANAGEMENT - LOT SIZING ==="
 // ─── Lot Mode ────────────────────────────────────────────────────────────────
 // AUTO LOW    = 0.01 lot per $1,000 equity  (safest, suits small accounts)
 // AUTO MEDIUM = 0.02 lot per $1,000 equity  (balanced)
@@ -157,11 +157,11 @@ input double InpRiskMax        = 3.0;    // Kelly max risk per trade (%)
 input double InpRiskMin        = 1.0;    // Kelly min risk per trade (%)
 input int    InpKellyMinTrades = 15;     // Trades before Kelly activates (uses InpRiskMin until then)
 // ─── SL / TP ─────────────────────────────────────────────────────────────────
-input double InpSL_ATR         = 2.0;   // Stop Loss distance (× ATR)
-input double InpSLMaxATR       = 4.5;   // SL hard cap (× ATR) — prevents sweep explosion
-input double InpTP1_ATR        = 1.5;   // TP1 distance (× ATR)
-input double InpTP2_ATR        = 3.0;   // TP2 distance (× ATR)
-input double InpTP3_ATR        = 5.0;   // TP3 distance (× ATR)
+input double InpSL_ATR         = 2.0;   // Stop Loss distance (x ATR)
+input double InpSLMaxATR       = 4.5;   // SL hard cap (x ATR) - prevents sweep explosion
+input double InpTP1_ATR        = 1.5;   // TP1 distance (x ATR)
+input double InpTP2_ATR        = 3.0;   // TP2 distance (x ATR)
+input double InpTP3_ATR        = 5.0;   // TP3 distance (x ATR)
 input double InpTP1_Pct        = 33.0;  // Close % at TP1
 input double InpTP2_Pct        = 33.0;  // Close % at TP2
 // ─── Daily / drawdown limits ─────────────────────────────────────────────────
@@ -210,9 +210,9 @@ input bool   InpAIWriteJson      = false;    // Write JSON snapshots to file (MQ
 input string InpAIJsonFile       = "LQS_AI_Journal.jsonl"; // Append-mode journal file
 input bool   InpAIJsonOnTick     = false;    // Write a market snapshot every bar (heavy)
 
-input group "=== AI VISION — EXTERNAL API (Claude / GPT / Gemini / DeepSeek / xAI) ==="
+input group "=== AI VISION - EXTERNAL API (Claude / GPT / Gemini / DeepSeek / xAI) ==="
 input bool   InpUseAPIVision      = false;   // Enable AI Vision (requires API key + WebRequest allowed)
-input string InpAPIKey            = "";       // API Key  ·  sk-ant-... | sk-... | AI... | xai-...
+input string InpAPIKey            = "";       // API Key - sk-ant-... | sk-... | AI... | xai-...
 input string InpProviderOverride  = "auto";  // Provider: auto | anthropic | openai | google | deepseek | xai
 input int    InpMinAPIConf        = 65;       // Min AI Vision confidence to allow trade (0-100)
 input int    InpAPITimeoutSec     = 30;       // WebRequest timeout (seconds)
