@@ -1992,30 +1992,67 @@ void RecordTrade(bool win,double rMult)
 //+=================================================================+
 //|           EXECUTION & MANAGEMENT                                |
 //+=================================================================+
+//+-----------------------------------------------------------------+
+//| Margin check (official OrderCalcMargin method).                  |
+//| Scales 'lot' down to what free margin allows. Returns false if   |
+//| not even the minimum lot is affordable - caller must SKIP.       |
+//+-----------------------------------------------------------------+
+bool ValidateLotAffordable(ENUM_ORDER_TYPE ot,double &lot)
+  {
+   double price  =(ot==ORDER_TYPE_BUY)?g_sym.Ask():g_sym.Bid();
+   double freeMgn=AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+   double minLot =SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
+   double step   =SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_STEP);
+   if(step<=0) step=0.01;
+
+   // Margin required for the requested lot
+   double margin=0.0;
+   if(!OrderCalcMargin(ot,_Symbol,lot,price,margin))
+     { Log(StringFormat("[MARGIN] OrderCalcMargin failed err:%d",GetLastError()));
+       return(false); }
+
+   // Affordable as-is
+   if(margin<=freeMgn&&margin>0.0) return(true);
+
+   // Not affordable - scale lot down proportionally (95% safety margin)
+   if(margin<=0.0) return(false);
+   double scaled=lot*(freeMgn*0.95)/margin;
+   scaled=MathFloor(scaled/step)*step;            // round DOWN to step
+   if(scaled<minLot)
+     { Log(StringFormat("[MARGIN] Free margin %.2f cannot fund min lot %.2f - SKIP",
+           freeMgn,minLot));
+       return(false); }
+
+   // Verify the scaled lot is genuinely affordable
+   double m2=0.0;
+   if(!OrderCalcMargin(ot,_Symbol,scaled,price,m2)||m2>freeMgn)
+     { Log(StringFormat("[MARGIN] Scaled lot %.2f still unaffordable - SKIP",scaled));
+       return(false); }
+
+   Log(StringFormat("[MARGIN] Lot reduced %.2f -> %.2f (free margin %.2f)",lot,scaled,freeMgn));
+   lot=scaled;
+   return(true);
+  }
+
 void ExecuteEntry()
   { if(g_sig.lot<=0)
       { double mn=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
         Log(StringFormat("[EXEC] Lot=%.5f is zero/negative — forcing min lot %.2f",g_sig.lot,mn));
         g_sig.lot=mn; }  // force to minimum rather than skip entirely
 
-    // Margin validation: reduce lot if account lacks free margin
-    double requiredMargin=g_sym.Ask()*g_sig.lot*SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE)/SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE);
-    double freeMgn=AccountInfoDouble(ACCOUNT_MARGIN_FREE);
-    if(requiredMargin>freeMgn&&freeMgn>0)
-      { double maxLot=NormLot((freeMgn*0.95)/((g_sym.Ask()*SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE))/SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE)));
-        double minLot=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
-        if(maxLot>=minLot)
-          { Log(StringFormat("[EXEC] Insufficient margin (%.2f<%2f) — reducing lot from %.3f to %.3f",
-              freeMgn,requiredMargin,g_sig.lot,maxLot));
-            g_sig.lot=maxLot; }
-        else
-          { Log(StringFormat("[EXEC] Insufficient margin even for min lot (%.2f needed) — SKIPPING",requiredMargin));
-            return; } }
+    ENUM_ORDER_TYPE ot=(g_sig.dir==DIR_LONG)?ORDER_TYPE_BUY:ORDER_TYPE_SELL;
+
+    // ----- MARGIN VALIDATION (official OrderCalcMargin approach) -----
+    // Scales the lot down to what free margin allows; if not even the
+    // minimum lot is affordable, the trade is SKIPPED (never sent).
+    if(!ValidateLotAffordable(ot,g_sig.lot))
+      { Log("[EXEC] Insufficient free margin for minimum lot - SKIPPING trade");
+        ResetSweepState();g_sig.valid=false;g_sig.dir=DIR_NONE;
+        return; }
 
     double stopLvl=(double)SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL)*_Point;
     if(MathAbs(g_sig.entry-g_sig.sl)<stopLvl)
       {Log(StringFormat("SL too close: %.1f < %.1f pts",MathAbs(g_sig.entry-g_sig.sl)/_Point,stopLvl/_Point));return;}
-    ENUM_ORDER_TYPE ot=(g_sig.dir==DIR_LONG)?ORDER_TYPE_BUY:ORDER_TYPE_SELL;
     string cmt=StringFormat("%s|%.0f|%s|ai%.0f|vis%d",
        InpCmt,g_sig.total,DirStr(g_sig.dir),g_ai.confidence,
        (InpUseAPIVision&&g_apiVis.valid)?g_apiVis.confidence:0);
