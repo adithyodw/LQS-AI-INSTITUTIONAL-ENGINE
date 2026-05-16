@@ -1,7 +1,23 @@
 *.log
-*.ex5
 .DS_Store
 Thumbs.db
 ~*
 *.bak
 .claude/
+
+# Test artifacts
+*.png
+*.jpg
+*.jpeg
+Tol\ Langit\ ETF*.png
+Tol\ Langit\ ETF*.jpg
+ReportTester-*.png
+
+# Old versions
+LQS\ Institutional\ Flow\ Engine.*
+newcodeAI.mq5
+AIJsonBenchmark.mq5
+
+# Test/scratch
+mql5/
+*.html
