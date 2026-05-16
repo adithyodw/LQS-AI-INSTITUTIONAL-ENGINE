@@ -9,15 +9,17 @@ Thumbs.db
 *.png
 *.jpg
 *.jpeg
-Tol\ Langit\ ETF*.png
-Tol\ Langit\ ETF*.jpg
 ReportTester-*.png
+*.html
 
 # Old versions
 LQS\ Institutional\ Flow\ Engine.*
 newcodeAI.mq5
 AIJsonBenchmark.mq5
+*.set
 
 # Test/scratch
 mql5/
-*.html
+
+# Keep only LQS_AI_Integrated.ex5 (production binary)
+!LQS_AI_Integrated.ex5
