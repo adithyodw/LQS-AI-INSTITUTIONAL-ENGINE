@@ -2037,6 +2037,7 @@ void ManageOpenTrade()
        bool   ib=(g_pos.PositionType()==POSITION_TYPE_BUY);
        double opx=g_pos.PriceOpen(),csl=g_pos.StopLoss(),ctp=g_pos.TakeProfit();
        double cur=ib?g_sym.Bid():g_sym.Ask(),sld=MathAbs(opx-csl),nsl=csl;
+       double minPriceDist=g_ATR*0.2; // Minimum distance from current price to new SL
 
        if(InpStaleExitBars>0&&!g_tp1Hit&&g_opOpenTime>0)
          { int barsSinceOpen=iBarShift(_Symbol,_Period,g_opOpenTime);
@@ -2068,7 +2069,27 @@ void ManageOpenTrade()
           if(cx){double vs2=g_sym.NormalizePrice(ib?cur-g_ATR*0.5:cur+g_ATR*0.5);
             if(ib&&vs2>nsl) nsl=vs2;
             if(!ib&&vs2<nsl&&nsl>0) nsl=vs2;}}
-       if(nsl!=csl&&nsl!=0.0)g_tr.PositionModify(g_pos.Ticket(),nsl,ctp);} }
+
+       // Safety checks before modification
+       if(nsl!=csl&&nsl!=0.0)
+         { // Check 1: New SL must be at least minPriceDist away from current price
+           bool slTooClose=(ib&&nsl>cur-minPriceDist)||(!ib&&nsl<cur+minPriceDist);
+
+           // Check 2: SL and TP must have minimum separation (at least 0.5 ATR)
+           double slTpDist=ctp>0?MathAbs(ctp-nsl):999999;
+           bool slTpTooClose=(slTpDist<g_ATR*0.5);
+
+           // Check 3: Ensure reasonable SL distance from entry
+           double slFromEntry=MathAbs(nsl-opx);
+           bool slTooTight=(slFromEntry<_Point*5);
+
+           if(!slTooClose&&!slTpTooClose&&!slTooTight)
+             g_tr.PositionModify(g_pos.Ticket(),nsl,ctp);
+           else if(InpVerbose)
+             Log(StringFormat("[MODIFY BLOCKED] tooClose=%s slTpClose=%s tooTight=%s nsl=%.5f cur=%.5f ctp=%.5f",
+                 B2S(slTooClose),B2S(slTpTooClose),B2S(slTooTight),nsl,cur,ctp));
+         }
+    } }
 
 void OnOurTradeClosed(ulong dealTicket)
   { if(!HistoryDealSelect(dealTicket))return;
