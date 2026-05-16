@@ -1,0 +1,1083 @@
+================================================================================
+
+    LQS-AI INSTITUTIONAL ENGINE v5.0
+    Technical Documentation and User Guide
+
+    Production-Grade Algorithmic Trading System
+    Author: adithyodw | Tol Langit Quantitative Research
+    Build Date: 2026-05-16
+
+================================================================================
+
+
+TABLE OF CONTENTS
+
+    1. Executive Summary
+    2. What's New in v5.0
+    3. System Architecture Overview
+    4. Module A — Liquidity Sweep Detection
+    5. Module B — Order Flow Analysis
+    6. Module C — AMD Wyckoff Cycle
+    7. Module D — Anchored VWAP System
+    8. Module E — Volume Profile Analysis
+    9. Module E+1 — AI Decision Layer (NEW)
+   10. AI Vision API Integration (NEW)
+   11. Signal Fusion Engine
+   12. Risk Management Framework (v5.0 Redesign)
+   13. Position Management & SL Safety Gates
+   14. JSON Trade Journal & Data Export
+   15. Execution Engine
+   16. Market Regime Classification
+   17. Dashboard Reference
+   18. Parameter Reference Guide
+   19. Installation and Setup
+   20. Strategy Tester Configuration
+   21. Risk Disclaimer
+
+
+================================================================================
+1. EXECUTIVE SUMMARY
+================================================================================
+
+LQS-AI v5.0 is an institutional-grade quantitative trading system designed
+to identify and exploit institutional liquidity events in XAUUSD (Gold) on
+the H1 timeframe.
+
+The core thesis: institutional participants create liquidity sweeps at key
+price levels to fill large orders. By detecting these events and confirming
+them through multiple independent analytical methods PLUS an optional AI
+decision filter, the system identifies entries where the risk-reward profile
+is statistically favorable.
+
+New in v5.0:
+- 7-feature online logistic regression AI decision layer (online learning)
+- Multi-provider AI Vision API support (Claude, GPT-4o, Gemini, DeepSeek, xAI)
+- Redesigned lot sizing system with 5 modes (Auto Low/Med/High, Fixed, Kelly)
+- Broker Stops/Freeze-level aware SL modification safety gates
+- JSON JSONL trade journal for post-trade ML analysis
+- Robust position management with no "Modification failed" errors
+
+Key Characteristics:
+- Multi-module confirmation + optional AI confirmation reduces false signals
+- Institutional-grade risk management with 5-mode lot sizing
+- Adaptive to four distinct market regimes
+- Optional AI Vision confirmation as second gate (disabled by default)
+- No hardcoded secrets, no DLLs, pure MQL5, fully self-contained
+- Broker-agnostic with automatic Stops/Freeze-level detection
+- Offline-capable (all core modules work without internet)
+
+
+================================================================================
+2. WHAT'S NEW IN v5.0
+================================================================================
+
+2.1 AI DECISION LAYER
+─────────────────────
+A 7-feature online logistic regression model trained from live trade outcomes:
+  Feature 1: Combined module score (0-100)
+  Feature 2: Shannon entropy market structure quality
+  Feature 3: Win rate momentum (last 8 vs prior 8 trades)
+  Feature 4: Order flow divergence strength
+  Feature 5: VWAP cluster proximity
+  Feature 6: Module consensus strength (votes cast)
+  Feature 7: Market volatility regime
+
+Output: Confidence score (0-100%) + directional probability
+Learning: Weights update on every closed trade (online learning)
+Role: Decision filter + risk modulator (never selects direction independently)
+
+Key Parameters:
+  InpUseAI                Enable/disable AI decision filter (default: true)
+  InpAILearnTrades        Minimum trades before learning activates (default: 15)
+  InpAIBoostThresh        High-confidence boost threshold (default: 75%)
+  InpAIBoostMult          Risk multiplier when AI very confident (default: 1.3x)
+  InpAIDampMult           Risk dampen when AI marginal (default: 0.8x)
+
+
+2.2 EXTERNAL AI VISION API (OPTIONAL)
+─────────────────────────────────────
+Multi-timeframe chart screenshot analysis by Claude, GPT-4o, Gemini,
+DeepSeek, or xAI Grok. Acts as a second confirmation gate before execution.
+
+Features:
+  - Multi-provider support (auto-detect from API key format)
+  - 3-timeframe configuration (default: M15, H1, H4)
+  - Base64 screenshot encoding + WebRequest integration
+  - Optional confidence-based trade gating
+  - Configurable API timeout and rate limiting
+
+Key Parameters:
+  InpUseAPIVision         Enable/disable Vision API (default: false)
+  InpProviderOverride     Provider selection: auto|anthropic|openai|google|deepseek|xai
+  InpAPIKey               API key from provider (no default - user must enter)
+  InpMinAPIConf           Min confidence to allow trade (0-100, default: 65)
+  InpAPITimeoutSec        WebRequest timeout in seconds (default: 30)
+  InpChartWidth/Height    Screenshot resolution (default: 1920x1080)
+
+⚠️ Important: Vision API is OPTIONAL and disabled by default. The system
+works entirely offline without it. When enabled, it provides additional
+confirmation but does not control entry direction.
+
+
+2.3 FLEXIBLE LOT SIZING SYSTEM (REDESIGNED)
+────────────────────────────────────────────
+Five sizing modes replacing the original Kelly-only approach:
+
+  AUTO_LOW: 0.01 lot per $1,000 equity (safest)
+            Example: $10k account = 0.1 lot
+
+  AUTO_MED: 0.02 lot per $1,000 equity (balanced)
+            Example: $10k account = 0.2 lot
+
+  AUTO_HIGH: 0.03 lot per $1,000 equity (aggressive)
+             Example: $10k account = 0.3 lot
+
+  FIXED: Constant position size specified by InpFixedLot
+
+  KELLY: Original Bayesian Kelly Criterion with quarterly learning
+
+All modes include:
+  - Soft scaling in HVOL regime (-25% multiplier)
+  - Consecutive loss scaling (-25% multiplier per 3+ losses)
+  - AI confidence-based risk multiplier (boost/damp)
+  - NormLot safety floor guarantees minimum lot size
+
+Key Parameters:
+  InpLotMode              Lot sizing mode (default: LOT_AUTO_LOW)
+  InpFixedLot             Fixed lot size if LOT_FIXED selected (default: 0.01)
+  InpKellyFrac            Kelly fraction for Kelly mode (default: 0.25)
+  InpRiskMin              Kelly floor risk (default: 1.0%)
+  InpRiskMax              Kelly ceiling risk (default: 3.0%)
+  InpSLMaxATR             Hard cap on SL distance (default: 4.5 ATR)
+
+
+2.4 JSON TRADE JOURNAL (APPEND-MODE JSONL)
+───────────────────────────────────────────
+Every closed trade exports a structured JSON record with:
+  - All module scores, AI confidence
+  - Market regime at entry/exit
+  - Entry/exit times and prices
+  - P/L amount and percentage
+  - Lot size, risk multipliers applied
+  - Trade comment (direction + vision confidence if applicable)
+
+Purpose: Machine learning, post-trade analysis, compliance audit trail
+
+Key Parameters:
+  InpExportJSON           Enable JSON journal export (default: true)
+  InpJSONFilePath         Output filename (default: "lqs_trades.jsonl")
+
+
+2.5 ROBUST POSITION MANAGEMENT FIXES
+────────────────────────────────────
+Eliminates "Modification failed due to order or position being close to
+market" errors by implementing broker-level safety detection:
+
+  - Detects SYMBOL_TRADE_STOPS_LEVEL and SYMBOL_TRADE_FREEZE_LEVEL
+  - Calculates safe buffer: max(broker_level, 4*spread, 0.4*ATR, 30 pts)
+  - Clamps new SL to safe distance instead of rejecting modification
+  - Validates SL vs TP separation (minimum 1 ATR)
+  - Only modifies when genuinely improving SL (ratchet mechanism)
+  - Logs blocked modifications when InpVerbose = true
+
+Result: Zero "Modification failed" backtesting errors, robust trailing SL
+
+
+================================================================================
+3. SYSTEM ARCHITECTURE OVERVIEW
+================================================================================
+
+v5.0 Pipeline (executed each bar):
+
+    +-----------+     +-----------+     +-----------+
+    | Module A  |     | Module B  |     | Module C  |
+    | Liquidity |     | Order     |     | AMD       |
+    | Sweep     |     | Flow      |     | Wyckoff   |
+    | Score 0-100     | Score 0-100     | Score 0-100
+    +-----+-----+     +-----+-----+     +-----+-----+
+          |                 |                 |
+          +--------+--------+--------+--------+
+                   |                 |
+             +-----+-----+    +-----+-----+
+             | Module D  |    | Module E  |
+             | Anchored  |    | Volume    |
+             | VWAP      |    | Profile   |
+             | Score 0-100    | Score 0-100
+             +-----+-----+    +-----+-----+
+                   |                 |
+                   +--------+--------+
+                            |
+                   +--------v--------+
+                   | SIGNAL FUSION   |
+                   | Weighted Score  |
+                   | Consensus Vote  |
+                   | Trend Filter    |
+                   +--------+--------+
+                            |
+                   +--------v--------+
+                   | AI DECISION     |
+                   | (v5.0 NEW)      |
+                   | Confidence (0-100)
+                   | Risk Modifier   |
+                   +--------+--------+
+                            |
+                   +--------v--------+
+                   | AI VISION API   |
+                   | (Optional Gate) |
+                   | Multi-provider  |
+                   +--------+--------+
+                            |
+                   +--------v--------+
+                   |  PASS GATES     |
+                   |  Session/Spread |
+                   |  Cooldown/Limits|
+                   +--------+--------+
+                            |
+                   +--------v--------+
+                   | EXECUTION       |
+                   | 5-Mode Lot Size |
+                   | Retry Logic     |
+                   | Fill Detection  |
+                   +--------+--------+
+                            |
+                   +--------v--------+
+                   | TRADE MGMT      |
+                   | Broker-Aware SL |
+                   | Partial TP      |
+                   | Trailing Stop   |
+                   | JSON Journal    |
+                   +-----------------+
+
+
+================================================================================
+4. MODULE A — LIQUIDITY SWEEP DETECTION
+================================================================================
+
+[Content unchanged from v3.0 - See sections 3.1 through 3.4 of original doc]
+
+Purpose: Identify institutional stop hunts and liquidity grabs at key
+price levels where retail stop-loss orders cluster.
+
+Key Parameters remain:
+  InpUsePrevDayHL, InpUseRoundNums, InpSweepWickPct, InpSweepVolMult,
+  InpSweepMaxAge, InpSweepDepthMin, etc.
+
+
+================================================================================
+5. MODULE B — ORDER FLOW ANALYSIS
+================================================================================
+
+[Content unchanged from v3.0 - See sections 4.1 through 4.7 of original doc]
+
+Purpose: Approximate institutional order flow using synthetic delta
+and candle structure to confirm sweep directionality.
+
+Key Parameters remain:
+  InpDeltaLookback, InpDivergThresh, InpAbsorbBars, InpAbsorbVolMult, etc.
+
+
+================================================================================
+6. MODULE C — AMD WYCKOFF CYCLE
+================================================================================
+
+[Content unchanged from v3.0 - See sections 5.1 through 5.8 of original doc]
+
+Purpose: Classify market phase in the Wyckoff Accumulation-Manipulation-
+Distribution cycle on higher timeframe for structural context.
+
+Key Parameters remain:
+  InpHTF_Input, InpAccumRangeRatio, InpSpringMult, InpManipVolMult, etc.
+
+
+================================================================================
+7. MODULE D — ANCHORED VWAP SYSTEM
+================================================================================
+
+[Content unchanged from v3.0 - See sections 6.1 through 6.7 of original doc]
+
+Purpose: Calculate Volume Weighted Average Price from institutional
+anchor points to determine fair value zones and confluence.
+
+Key Parameters remain:
+  InpVWAP_Asian, InpVWAP_London, InpVWAP_NY, InpVWAP_Week,
+  InpVWAP_ClsDist, InpVWAP_DevThresh, etc.
+
+
+================================================================================
+8. MODULE E — VOLUME PROFILE ANALYSIS
+================================================================================
+
+[Content unchanged from v3.0 - See sections 7.1 through 7.6 of original doc]
+
+Purpose: Build Volume Profile to identify institutional support/
+resistance zones based on volume distribution.
+
+Key Parameters remain:
+  InpVP_Buckets, InpVP_RollingLen, InpVP_HVN_Pct, InpVP_POC_Tol, etc.
+
+
+================================================================================
+9. MODULE E+1 — AI DECISION LAYER (v5.0 NEW)
+================================================================================
+
+9.1 Overview
+────────────
+An online logistic regression model that learns from trade outcomes in
+real-time. Acts as a decision filter (gating mechanism) and risk modulator,
+never independently selects direction.
+
+Role: Enhance signal quality by:
+  1. Filtering out low-conviction setups
+  2. Modulating risk size based on AI confidence
+  3. Learning win patterns from the user's specific market conditions
+
+9.2 Seven-Feature Input
+───────────────────────
+  Feature 1: Combined Module Score
+    Range: 0-100
+    Represents overall signal strength from signal fusion engine
+
+  Feature 2: Shannon Entropy Market Quality
+    Range: 0-1
+    High entropy = choppy/uncertain market (dampens risk)
+    Low entropy = structured market (boosts confidence)
+
+  Feature 3: Win Rate Momentum
+    Range: -1 to +1
+    Last 8 trades vs prior 8 trades win rate change
+    Positive = recent trades performing well
+
+  Feature 4: Order Flow Divergence Strength
+    Range: 0-100
+    Captures Module B divergence signal
+    Higher = stronger institutional absorption
+
+  Feature 5: VWAP Cluster Proximity
+    Range: 0-100
+    Is current price near a VWAP cluster?
+    Clusters = strong support/resistance zones
+
+  Feature 6: Module Consensus Strength
+    Range: 0-5
+    How many independent modules are voting the same direction?
+    Higher = stronger directional agreement
+
+  Feature 7: Market Volatility Regime
+    Range: 1-4
+    1=RANGE, 2=WEAK_TREND, 3=STRONG_TREND, 4=HIGH_VOL
+    Regime-specific probability adjustments
+
+9.3 Online Learning Mechanism
+──────────────────────────────
+After every closed trade:
+  1. Calculate trade outcome (win/loss)
+  2. Use the 7 input features from the entry bar
+  3. Update logistic regression weights
+  4. Recalibrate confidence threshold
+
+Learning parameters:
+  InpAILearnTrades        Minimum trades before learning (default: 15)
+  Learning Rate           Fixed at 0.05 per trade (optimized for stability)
+
+9.4 Confidence Scoring
+──────────────────────
+Output is a probability (0-100%) that the setup will be profitable:
+
+  P(Profitable) = sigmoid(-0.5 + 0.1*F1 + 0.08*F2 + 0.05*F3 + ... + 0.02*F7)
+
+Where sigmoid maps the sum to [0, 100] confidence range.
+
+9.5 Risk Modulation
+───────────────────
+AI confidence affects position sizing:
+
+  If AI_Confidence >= InpAIBoostThresh (default: 75%):
+    RiskMultiplier = InpAIBoostMult (default: 1.3x)
+    → Increases position size by 30%
+
+  If AI_Confidence < InpAIBoostThresh AND < 50%:
+    RiskMultiplier = InpAIDampMult (default: 0.8x)
+    → Decreases position size by 20%
+
+  Otherwise:
+    RiskMultiplier = 1.0x (no change)
+
+9.6 Key Parameters
+──────────────────
+  InpUseAI                Enable/disable (default: true)
+  InpAILearnTrades        Min trades before learning (default: 15)
+  InpAIBoostThresh        High-confidence threshold (default: 75%)
+  InpAIBoostMult          Boost multiplier (default: 1.3x)
+  InpAIDampMult           Damp multiplier (default: 0.8x)
+
+
+================================================================================
+10. AI VISION API INTEGRATION (v5.0 NEW)
+================================================================================
+
+10.1 Overview
+─────────────
+Optional multi-timeframe chart analysis by Claude, GPT-4o, Gemini,
+DeepSeek, or xAI Grok. Provides a second confirmation gate before
+trade execution.
+
+Default: Disabled (InpUseAPIVision = false)
+All core modules work offline without Vision enabled.
+
+10.2 Provider Support
+──────────────────────
+Auto-detection from API key format:
+
+  Claude (Anthropic):     Starts with "sk-ant-"
+  GPT-4o (OpenAI):        Starts with "sk-proj-" or "sk-"
+  Gemini (Google):        Arbitrary length alphanumeric
+  DeepSeek:              Starts with "sk-"
+  xAI Grok:              Starts with "xai-" or "grok-"
+
+Fallback: If auto-detect unclear, use InpProviderOverride
+
+10.3 Three-Timeframe Analysis
+──────────────────────────────
+On a confirmed signal:
+  1. Take screenshot of current M15 chart
+  2. Take screenshot of current H1 chart
+  3. Take screenshot of current H4 chart
+  4. Base64 encode all three
+  5. Send to Vision API with prompt:
+     "Analyze these XAUUSD charts (M15, H1, H4) and rate the bullish/
+      bearish bias on a scale 0-100. Consider trend, support/resistance,
+      and confluence. Output JSON: {confidence: 0-100, direction: 'long'|
+      'short', reasoning: '...'}"
+
+10.4 Confidence Threshold Gate
+───────────────────────────────
+If Vision API enabled:
+  - If API_Confidence >= InpMinAPIConf (default: 65):
+    → ALLOW trade execution
+  - If API_Confidence < InpMinAPIConf:
+    → BLOCK trade, log rejection with AI confidence
+
+Confidence is aggregated from all 3 timeframes.
+
+10.5 Error Handling & Fallback
+───────────────────────────────
+If Vision API:
+  - Timeout (> InpAPITimeoutSec seconds): Log timeout, block trade
+  - Network error: Log error, block trade
+  - Invalid JSON response: Log error, block trade
+  - API rate limit: Retry once after 60 seconds
+  - Provider offline: Trade proceeds if InpIgnoreAPIErrors = true
+
+10.6 API Request Details
+────────────────────────
+WebRequest endpoint:
+  - Anthropic: https://api.anthropic.com/v1/messages
+  - OpenAI: https://api.openai.com/v1/chat/completions
+  - Google: https://generativelanguage.googleapis.com/v1beta/generateContent
+  - DeepSeek: https://api.deepseek.com/chat/completions
+  - xAI: https://api.x.ai/chat/completions
+
+Headers:
+  - Authorization: Bearer [API_KEY]
+  - Content-Type: application/json
+  - User-Agent: LQS-AI-INSTITUTIONAL/5.0
+
+Request timeout: InpAPITimeoutSec (default: 30 seconds)
+Rate limiting: 1 request per trade signal maximum
+
+10.7 Key Parameters
+────────────────────
+  InpUseAPIVision         Enable Vision API gate (default: false)
+  InpProviderOverride     Provider: "auto"|"anthropic"|"openai"|"google"|
+                          "deepseek"|"xai" (default: "auto")
+  InpAPIKey               Provider API key (no default - user must enter)
+  InpMinAPIConf           Min Vision confidence (0-100, default: 65)
+  InpAPITimeoutSec        WebRequest timeout in seconds (default: 30)
+  InpChartWidth           Screenshot width in pixels (default: 1920)
+  InpChartHeight          Screenshot height in pixels (default: 1080)
+  InpIgnoreAPIErrors      Continue trading if API error (default: false)
+
+
+================================================================================
+11. SIGNAL FUSION ENGINE
+================================================================================
+
+[Content partially unchanged from v3.0, with v5.0 additions]
+
+11.1 Weighted Score Calculation with AI Modifier
+─────────────────────────────────────────────────
+
+Base Score (v3.0):
+  Raw Score = wA*ScoreA + wB*ScoreB + wC*ScoreC + wD*ScoreD + wE*ScoreE
+
+With v5.0 AI Enhancement:
+  1. Calculate Raw Score as above
+  2. Get AI Confidence (0-100%)
+  3. AI Adjustment Factor = AI_Confidence / 100
+  4. Final Score = Raw Score * (0.7 + 0.3 * AI_Adjustment)
+     → Minimum 70% of Raw Score even if AI uncertain
+     → Maximum 100% of Raw Score (no amplification by AI)
+
+Effect: AI can reduce false signals but doesn't artificially inflate scores.
+
+11.2 Default Weights (unchanged from v3.0)
+───────────────────────────────────────────
+  Module A (Liquidity Sweep): 35%
+  Module B (Order Flow):      20%
+  Module C (AMD Wyckoff):     20%
+  Module D (Anchored VWAP):   15%
+  Module E (Volume Profile):  10%
+
+11.3 Regime-Adaptive Weights (unchanged from v3.0)
+──────────────────────────────────────────────────
+  STRONG TREND: Module C +20%, Module A +10%
+  HIGH VOLATILITY: Module A +40%, Module B +20%
+  RANGE: Module B +20%, Module D +20%, Module E +10%
+  WEAK TREND: No adjustment
+
+11.4 Entry Validation (v5.0 with AI + Vision)
+──────────────────────────────────────────────
+All conditions must be TRUE:
+  1. Raw score >= InpScoreEntry (default: 50)
+  2. Directional consensus achieved (2+ module votes)
+  3. Module count >= InpMinModules (default: 3 of 5)
+  4. Module A (Sweep) must be active (mandatory)
+  5. Trend filter passes (if enabled)
+  6. AI Confidence >= 40% (if InpUseAI = true)
+  7. Vision API Confidence >= InpMinAPIConf (if InpUseAPIVision = true)
+
+If all pass: EXECUTE TRADE
+If any fails: REJECT, log reason in dashboard
+
+
+================================================================================
+12. RISK MANAGEMENT FRAMEWORK (v5.0 REDESIGN)
+================================================================================
+
+12.1 Five-Mode Lot Sizing System (v5.0 NEW)
+──────────────────────────────────────────
+
+MODE 1: AUTO_LOW (Safest)
+  Formula: Lot = (Equity / 1000) * 0.01
+  Example: $10k equity → 0.1 lot
+  Use Case: Conservative traders, small accounts
+
+MODE 2: AUTO_MED (Balanced)
+  Formula: Lot = (Equity / 1000) * 0.02
+  Example: $10k equity → 0.2 lot
+  Use Case: Balanced risk/reward approach
+
+MODE 3: AUTO_HIGH (Aggressive)
+  Formula: Lot = (Equity / 1000) * 0.03
+  Example: $10k equity → 0.3 lot
+  Use Case: Experienced traders, larger accounts
+
+MODE 4: FIXED
+  Formula: Lot = InpFixedLot (constant)
+  Example: InpFixedLot = 0.05 → always 0.05 lot
+  Use Case: Traders who want exact position control
+
+MODE 5: KELLY (Advanced)
+  Formula: Lot = (Equity * KellyPercent) / (SL_Distance * TickValue)
+  Where: KellyPercent = Kelly Criterion (0.25 to 2.0% bounded)
+  Example: Kelly = 1.5%, SL = 50 pts → proportional sizing
+  Use Case: Mathematically optimized sizing, learns from history
+
+12.2 Soft Scaling Multipliers (All Modes)
+──────────────────────────────────────────
+
+High Volatility Regime Scaling:
+  If Current_ATR > 75th Percentile of ATR (last 30 bars):
+    Lot *= 0.75 (reduce by 25%)
+
+Consecutive Loss Scaling:
+  If 3+ consecutive losses:
+    Lot *= 0.75 (reduce by 25%)
+
+Can compound: If both conditions, Lot *= 0.75 * 0.75 = 0.5625
+
+12.3 AI Confidence Risk Modulation (v5.0 NEW)
+──────────────────────────────────────────────
+After calculating base lot from mode:
+
+  If AI_Confidence >= InpAIBoostThresh (default: 75%):
+    Lot *= InpAIBoostMult (default: 1.3x)
+    → Increase position by 30%
+
+  Else if AI_Confidence < 50%:
+    Lot *= InpAIDampMult (default: 0.8x)
+    → Decrease position by 20%
+
+  Else: Lot *= 1.0x (no change)
+
+Order of Application:
+  1. Base lot from mode
+  2. Apply soft scaling (HVOL × losses)
+  3. Apply AI modulation (boost/damp)
+  4. Apply NormLot safety floor
+  5. Compare against SYMBOL_VOLUME_LIMIT
+  6. Ensure minimum tick size compliance
+
+12.4 NormLot Safety Floor
+──────────────────────────
+Guarantees minimum lot size:
+
+  NormLot = max(calculated_lot, SYMBOL_VOLUME_STEP)
+
+Prevents "Lot = 0 / Trade skipped" errors:
+  - If calculation produces 0.001 but minimum is 0.01 → use 0.01
+  - Never skips trade due to lot rounding down
+  - Respects broker SYMBOL_VOLUME_LIMIT maximum
+
+12.5 Stop Loss Placement (v5.0 Improved)
+─────────────────────────────────────────
+
+Base SL: InpSL_ATR * ATR (default: 2.0 ATR)
+
+If sweep is active: SL placed beyond sweep extreme
+  Long:  SL = min(sweep_low, entry) - SL_ATR * ATR
+  Short: SL = max(sweep_high, entry) + SL_ATR * ATR
+
+SL Hard Cap: InpSLMaxATR (default: 4.5 ATR)
+  If calculated SL would exceed 4.5 ATR from entry:
+    SL = entry +/- 4.5 ATR (capped)
+  Prevents excessive SL expansion
+
+HVN Adjustment: If High Volume Node exists beyond base SL:
+  SL extended to HVN minus 0.3 ATR (places SL behind support)
+
+12.6 Broker-Aware SL Modification (v5.0 NEW)
+──────────────────────────────────────────────
+
+Detects broker constraints:
+  - SYMBOL_TRADE_STOPS_LEVEL: Minimum distance from market
+  - SYMBOL_TRADE_FREEZE_LEVEL: Dead zone before expiry
+
+Safe Buffer Calculation:
+  SafeBuffer = max(
+    SYMBOL_TRADE_STOPS_LEVEL,
+    4 * Spread,
+    0.4 * ATR,
+    30 points
+  )
+
+Modification Gate (only modify if):
+  1. New SL is SafeBuffer away from current price
+  2. SL-TP separation >= 1.0 ATR
+  3. New SL is improvement (ratchet mechanism)
+  4. Not inside freeze band (near order expiry)
+
+If conditions fail: Log rejection, maintain current SL
+
+Result: Zero "Modification failed" errors, robust trailing
+
+12.7 Three-Tier Take Profit (unchanged from v3.0)
+──────────────────────────────────────────────────
+  TP1: InpTP1_ATR * ATR (default: 1.5 ATR) — Close InpTP1_Pct (33%)
+  TP2: InpTP2_ATR * ATR (default: 3.0 ATR) — Close InpTP2_Pct (33%)
+  TP3: InpTP3_ATR * ATR (default: 5.0 ATR) — Remaining position
+
+12.8 Breakeven & Trailing Stop (unchanged from v3.0)
+─────────────────────────────────────────────────────
+Breakeven: When price reaches InpBE_RMult * SL distance in profit
+Trailing: SL = Current Price - InpTrailATR * ATR (ratchet only)
+
+12.9 Circuit Breakers (unchanged from v3.0)
+──────────────────────────────────────────────
+  Daily Loss Limit:    Close all + lock if daily P/L <= -InpDailyLossLim%
+  Daily Profit Lock:   Close all + lock if daily P/L >= +InpDailyProfLock%
+  Equity DD Protect:   Close all + lock if peak DD >= InpMaxDDPct%
+  Max Daily Trades:    Block new entries after InpMaxDailyTrades
+  Spread Filter:       Block entries when spread > InpMaxSpread
+  Trade Cooldown:      Block entries for InpCooldownBars after last close
+
+12.10 Key Parameters Summary
+─────────────────────────────
+  InpLotMode              Lot sizing mode (default: LOT_AUTO_LOW)
+  InpFixedLot             Fixed lot size (default: 0.01)
+  InpKellyFrac            Kelly fraction (default: 0.25)
+  InpRiskMin              Kelly min risk (default: 1.0%)
+  InpRiskMax              Kelly max risk (default: 3.0%)
+  InpSL_ATR               Stop loss in ATR (default: 2.0)
+  InpSLMaxATR             SL hard cap (default: 4.5 ATR)
+  InpTP1/2/3_ATR          Take profit levels (default: 1.5/3.0/5.0)
+  InpTP1/2_Pct            Partial close percentages (default: 33/33)
+  InpBE_RMult             Breakeven activation (default: 0.5)
+  InpTrailStart           Trail activation (default: 1.5)
+  InpTrailATR             Trail distance in ATR (default: 1.0)
+
+
+================================================================================
+13. POSITION MANAGEMENT & SL SAFETY GATES
+================================================================================
+
+13.1 Broker Constraint Detection (v5.0 NEW)
+─────────────────────────────────────────────
+On initialization (OnInit()):
+  1. Query SYMBOL_TRADE_STOPS_LEVEL → minimum SL distance (pts)
+  2. Query SYMBOL_TRADE_FREEZE_LEVEL → dead zone before expiry (pts)
+  3. Query SYMBOL_SPREAD → current spread (pts)
+  4. Calculate ATR → volatility measure
+  5. Determine safe buffer as max of above
+
+This adapts to every broker's constraints without user input.
+
+13.2 SL Clamping on Modification (v5.0 NEW)
+──────────────────────────────────────────────
+Instead of rejecting a modification that violates constraints:
+  1. Calculate desired new SL
+  2. If new SL too close to market:
+     → Clamp to SafeBuffer away from current price
+  3. Re-evaluate: Is clamped SL still an improvement?
+  4. If yes: Execute modified SL
+  5. If no: Maintain current SL, log decision
+
+Result: Smooth SL trailing without errors
+
+13.3 Trailing SL Algorithm (Volatility-Aware)
+────────────────────────────────────────────────
+On each bar (for open position):
+  If price moved InpTrailStart * SL_Distance in our favor:
+    1. Calculate trail SL = Current Price - InpTrailATR * ATR
+    2. Check if trail SL is SafeBuffer from market
+    3. Compare trail SL vs current SL
+    4. If trail SL is improvement: Modify
+    5. If trail SL violates broker constraint: Clamp to SafeBuffer
+    6. Log modifications (if InpVerbose = true)
+
+Ratchet mechanism: SL only moves in favorable direction
+
+13.4 VWAP Cluster Trailing (v5.0)
+──────────────────────────────────
+If a VWAP cluster forms against our position after breakeven:
+  Engage tighter trailing: Trail SL = Current Price - 0.5 * ATR
+  This protects against reversal from cluster resistance
+
+13.5 Journal Entry Logging (v5.0 NEW)
+──────────────────────────────────────
+Every closed trade logs:
+  - Lot size applied (auto mode + scalings + AI modulation)
+  - SL distance from entry (points and ATR)
+  - Reason for SL (base ATR / sweep extreme / HVN extension)
+  - Number of SL modifications attempted
+  - Number of SL modifications succeeded (clamped or executed)
+  - Final trailing SL value at close
+
+
+================================================================================
+14. JSON TRADE JOURNAL & DATA EXPORT (v5.0 NEW)
+================================================================================
+
+14.1 JSONL Format (Append-Only)
+────────────────────────────────
+Each closed trade appends one JSON object to the journal file.
+Filename: InpJSONFilePath (default: "lqs_trades.jsonl")
+Location: Terminal Data Folder \ Files \ [filename]
+
+Example entry:
+{
+  "timestamp": "2026-05-16 14:30:00",
+  "symbol": "XAUUSD",
+  "timeframe": "H1",
+  "direction": "LONG",
+  "entry_price": 2450.50,
+  "exit_price": 2455.75,
+  "lot_size": 0.15,
+  "stop_loss": 2448.00,
+  "take_profit": 2458.50,
+  "pnl": 78.75,
+  "pnl_pct": 0.31,
+  "duration_bars": 3,
+  "regime": "STRONG_TREND",
+  "module_a_score": 78,
+  "module_b_score": 65,
+  "module_c_score": 72,
+  "module_d_score": 55,
+  "module_e_score": 48,
+  "ai_confidence": 82,
+  "vision_api_confidence": null,
+  "ai_boost_applied": true,
+  "lot_mode_used": "AUTO_MED",
+  "sl_mode": "SWEEP_EXTREME",
+  "sl_modifications": 2,
+  "trailing_engaged": true,
+  "comment": "LONG [Vision: N/A] AI: 82%"
+}
+
+14.2 Journal Fields
+────────────────────
+Header Information:
+  timestamp          ISO 8601 close time
+  symbol             XAUUSD
+  timeframe          H1
+
+Signal & Execution:
+  direction          LONG or SHORT
+  entry_price        Entry fill price
+  exit_price         Exit fill price
+  lot_size           Final lot executed (includes all scalings)
+
+Levels:
+  stop_loss          Final SL at close
+  take_profit        TP level (primary if partial TP)
+
+Performance:
+  pnl                Profit/loss in USD
+  pnl_pct            Profit/loss percentage
+  duration_bars      Bars held
+
+Market Context:
+  regime             RANGE / WEAK_TREND / STRONG_TREND / HIGH_VOL
+
+Module Scores:
+  module_a_score     Liquidity Sweep score (0-100)
+  module_b_score     Order Flow score (0-100)
+  module_c_score     AMD Wyckoff score (0-100)
+  module_d_score     Anchored VWAP score (0-100)
+  module_e_score     Volume Profile score (0-100)
+
+AI Features:
+  ai_confidence      AI decision confidence (0-100%)
+  vision_api_confidence   Vision API confidence if used, null if not
+  ai_boost_applied   true if AI boosted position size
+
+Position Sizing:
+  lot_mode_used      AUTO_LOW / AUTO_MED / AUTO_HIGH / FIXED / KELLY
+
+Risk Management:
+  sl_mode            BASE_ATR / SWEEP_EXTREME / HVN_EXTENSION
+  sl_modifications   Number of SL modifications attempted
+  trailing_engaged   true if trailing stop engaged
+
+Metadata:
+  comment            EA's internal trade comment (direction + AI%)
+
+14.3 Use Cases for JSON Journal
+──────────────────────────────────
+1. Post-Trade Analysis:
+   - Import to Python/Pandas
+   - Analyze winning vs losing trade patterns
+   - Identify which modules correlate with profits
+
+2. Machine Learning:
+   - Train custom model on module score combinations
+   - Identify best signal thresholds for your market
+   - Backtest modified entry criteria
+
+3. Compliance & Audit:
+   - Complete audit trail of every trade
+   - Timestamps, prices, lot sizes for regulatory review
+
+4. Performance Reporting:
+   - Group by regime, direction, lot mode
+   - Calculate Sharpe ratio, Sortino ratio
+   - Analyze drawdown periods
+
+14.4 Key Parameters
+────────────────────
+  InpExportJSON       Enable/disable JSON export (default: true)
+  InpJSONFilePath     Output filename (default: "lqs_trades.jsonl")
+
+
+================================================================================
+15. EXECUTION ENGINE
+================================================================================
+
+[Content similar to v3.0 with v5.0 enhancements]
+
+15.1 Fill Type Auto-Detection
+──────────────────────────────
+On initialization, queries SYMBOL_FILLING_MODE and selects:
+  FOK (Fill or Kill) if supported
+  IOC (Immediate or Cancel) as fallback
+  RETURN as last resort
+
+15.2 Order Retry Logic
+───────────────────────
+On requote or price change (codes 10004, 10021, 10013):
+  - Refresh symbol rates
+  - Retry up to 3 times
+  - 200ms delay between retries
+  - Fresh price used on each retry
+
+15.3 Slippage Protection
+─────────────────────────
+Maximum allowed slippage: InpSlippage points (default: 10)
+
+15.4 v5.0 Enhanced: Lot Calculation
+─────────────────────────────────────
+Lot calculation happens in real-time on entry bar:
+  1. Get equity
+  2. Get SL distance (from sweep or base ATR)
+  3. Determine lot mode (Auto Low/Med/High, Fixed, Kelly)
+  4. Apply soft scaling (HVOL, consecutive losses)
+  5. Get AI confidence, apply boost/damp
+  6. Pass through NormLot safety floor
+  7. Check SYMBOL_VOLUME_LIMIT
+  8. Execute order with calculated lot
+
+
+================================================================================
+16. MARKET REGIME CLASSIFICATION
+================================================================================
+
+[Content unchanged from v3.0]
+
+Four regimes affect module weight adjustments:
+  STRONG TREND:  ADX >= InpStrongADX (default: 35)
+  WEAK TREND:    ADX >= InpTrendADX but < StrongADX (default: 20)
+  RANGE:         ADX < InpTrendADX and volatility low
+  HIGH VOLATILITY: Current ATR > InpVolPctile percentile (default: 75th)
+
+
+================================================================================
+17. DASHBOARD REFERENCE
+================================================================================
+
+[Content similar to v3.0 with v5.0 additions]
+
+Real-time dashboard displays:
+  Header:        EA v5.0, symbol, timeframe, regime
+  State:         IDLE / SWEEP / READY / TRADE / LOCKED / NEWS / AI_GATING
+  Score:         Combined signal score + AI confidence (NEW)
+  Module A-E:    Individual module scores
+  AI Status:     Confidence %, boost/damp applied, trades learned from (NEW)
+  Vision API:    API provider, last API confidence, timeout status (if enabled)
+  Next Trade:    Direction, lot size, entry/SL/TP, risk amount
+  Lot Mode:      Current mode (AUTO_LOW/AUTO_MED/AUTO_HIGH/FIXED/KELLY)
+  SL Management: Safe buffer from market, modifications attempted (NEW)
+  Session:       Daily P/L, balance, trade count
+  Market:        Bid, spread, ATR, ADX
+  Journal:       Trades logged to JSON, filename (NEW)
+
+
+================================================================================
+18. PARAMETER REFERENCE GUIDE
+================================================================================
+
+v5.0 introduces ~20 new parameters for AI and Vision API:
+
+NEW Input Groups (v5.0):
+  [AI DECISION LAYER] — 5 parameters
+  [AI VISION] — 8 parameters
+  [AI DATA INTERFACE] — 2 parameters (JSON journal)
+  [RISK MANAGEMENT - LOT SIZING] — Redesigned (5 parameters)
+  [SL MANAGEMENT - BROKER SAFETY] — New (2 parameters)
+
+Total configurable parameters: 70+ (up from 60 in v4.0)
+
+All parameters are English-only (Latin characters, no special Unicode)
+All parameters grouped logically in Input tab
+All input groups validated by MQL5 Market
+
+
+================================================================================
+19. INSTALLATION AND SETUP
+================================================================================
+
+Step 1: Copy LQS_AI_Integrated.ex5 to:
+        [MT5 Data Folder]\MQL5\Experts\
+
+Step 2: Copy .set files (if desired) to:
+        [MT5 Data Folder]\MQL5\Presets\
+
+Step 3: Restart MetaTrader 5 or refresh Navigator panel
+
+Step 4: Open XAUUSD H1 chart
+
+Step 5: Drag EA from Navigator onto chart
+
+Step 6: In Properties, configure as desired
+
+Step 7: Set lot mode (recommend LOT_AUTO_LOW for first run)
+
+Step 8: If using AI Vision:
+        - Obtain API key from Anthropic, OpenAI, Google, DeepSeek, or xAI
+        - Paste in InpAPIKey
+        - Set InpUseAPIVision = true
+        - In MetaEditor: Tools → Options → Expert Advisors → enable
+          WebRequest for the API endpoint domain
+
+Step 9: Enable "Allow Algo Trading" in MT5 settings
+
+Step 10: Monitor on chart dashboard or external platforms
+
+Recommended Broker Requirements:
+  - ECN/STP execution
+  - XAUUSD spread under 30 points
+  - Hedging account type (preferred) or Netting
+  - VPS with <5ms latency to broker (for trailing SL)
+
+
+================================================================================
+20. STRATEGY TESTER CONFIGURATION
+================================================================================
+
+Recommended backtesting settings:
+
+  Symbol:         XAUUSD
+  Period:         H1
+  Modeling:       Every tick based on real ticks (preferred)
+  Date Range:     Minimum 2 years (e.g., Jan 2024 - Dec 2025)
+  Initial Deposit: $10,000+
+  Leverage:       1:100
+  Spread:         Variable (broker default)
+  Forward:        Optional, 25% recommended
+  Optimization:   Genetic algorithm (if tuning)
+  Custom Criterion: Enabled
+
+v5.0 Notes:
+  - AI learning requires 15+ trades before affecting decisions
+  - Vision API requires internet connection during forward testing
+  - JSON journal exports during live/strategy testing
+  - Lot sizing changes reflect in backtest equity curve
+  - All SL modifications log to Journal tab (if InpVerbose = true)
+
+
+================================================================================
+21. RISK DISCLAIMER
+================================================================================
+
+Trading financial instruments involves substantial risk of loss and is not
+suitable for all investors. Past performance, whether actual or indicated
+by backtesting, is not indicative of future results.
+
+The LQS-AI Institutional Engine is a trading tool that assists in
+identifying potential trading opportunities. It does not constitute
+investment advice and should not be relied upon as a sole basis for
+making trading decisions.
+
+Users are solely responsible for their trading decisions and should
+carefully consider their financial situation and risk tolerance before
+using this software.
+
+The AI decision layer and Vision API are probabilistic tools that may
+produce incorrect predictions. They should never be relied upon as the
+sole basis for trading decisions.
+
+There are no representations or warranties regarding future performance.
+No trading system can provide certainty of results.
+
+================================================================================
+ADDITIONAL RESOURCES
+================================================================================
+
+Live Trading Signals:
+  MQL5:       https://www.mql5.com/en/signals/1083101
+  Myfxbook:   https://www.myfxbook.com/members/adithyodw/tol-langit-v10
+  SignalStart: https://icmarkets.signalstart.com/analysis/tol-langit-v10
+  ZuluTrade:  https://www.zulutrade.com/trader/417743/trading
+
+Portfolio Dashboard:
+  https://tol-langit-etf.vercel.app/
+
+GitHub Repository:
+  https://github.com/adithyodw/LQS-AI-INSTITUTIONAL-ENGINE
+
+Support:
+  GitHub Issues: https://github.com/adithyodw/LQS-AI-INSTITUTIONAL-ENGINE/issues
+  Author: adithyodw (Tol Langit Quantitative Research)
+
+================================================================================
+END OF TECHNICAL DOCUMENTATION v5.0
+================================================================================
