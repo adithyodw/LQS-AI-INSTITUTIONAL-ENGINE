@@ -1,0 +1,7 @@
+*.log
+*.ex5
+.DS_Store
+Thumbs.db
+~*
+*.bak
+.claude/

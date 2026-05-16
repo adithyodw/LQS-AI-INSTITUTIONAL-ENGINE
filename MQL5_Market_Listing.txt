@@ -1,0 +1,245 @@
+================================================================================
+   MQL5 MARKET PRODUCT LISTING — COMPLETE SUBMISSION PACKAGE
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 1: PRODUCT TITLE
+────────────────────────────────────────────────────────────────────────────────
+
+LQS Institutional Flow Engine
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 2: PRODUCT TYPE
+────────────────────────────────────────────────────────────────────────────────
+
+Expert Advisor (EA) for MetaTrader 5
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 3: RECOMMENDED PRICE
+────────────────────────────────────────────────────────────────────────────────
+
+Price: $299 USD
+Rent: $49/month | $129/quarter | $199/half-year
+
+Rationale:
+- Premium tier positioning (institutional-grade architecture)
+- 5-module fusion system is significantly more complex than single-strategy EAs
+- Comparable multi-module EAs on MQL5 Market range $199-$499
+- Price reflects development quality without being prohibitive
+- Rental option lowers barrier to entry for new customers
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 4: PRODUCT DESCRIPTION (English)
+────────────────────────────────────────────────────────────────────────────────
+
+[PASTE THIS INTO MQL5 MARKET DESCRIPTION FIELD]
+
+LQS Institutional Flow Engine is a professional-grade Expert Advisor built on
+a 5-module signal fusion architecture. It identifies high-probability reversal
+setups by detecting institutional liquidity sweeps, confirming with order flow
+analysis, validating through Wyckoff market structure, and filtering with
+Anchored VWAP and Volume Profile confluence.
+
+Designed for XAUUSD (Gold) on the H1 timeframe.
+
+---------- HOW IT WORKS ----------
+
+The EA combines five independent market analysis modules into a unified
+signal scoring system. A trade is only executed when multiple modules
+confirm the same directional bias with sufficient confidence.
+
+Module A — Liquidity Sweep Detection
+Identifies stop hunts and liquidity grabs at key price levels: previous day
+high/low, Asian session range, swing pivots, round numbers, and session
+opens. Measures wick percentage, volume ratio, reversal strength, and
+sweep depth to score each event.
+
+Module B — Order Flow Analysis
+Approximates institutional order flow using synthetic delta from candle
+structure. Detects volume divergences, absorption patterns (high volume
+with small range), exhaustion signals, and buying/selling pressure
+imbalances using both fast (8-bar) and slow (configurable) windows.
+
+Module C — AMD Wyckoff Cycle
+Implements the Accumulation-Manipulation-Distribution model on the higher
+timeframe. Detects spring and upthrust patterns, volume climaxes, and
+phase transitions. Identifies when manipulation ends and distribution
+begins, providing directional context for entries.
+
+Module D — Anchored VWAP
+Calculates Volume Weighted Average Price anchored to seven key points:
+Asian session, London open, New York open, weekly open, daily open,
+swing pivots, and Point of Control. Detects VWAP clusters, premium and
+discount zones using standard deviation bands, and level alignment
+with sweep events.
+
+Module E — Volume Profile
+Builds a rolling volume profile to identify Point of Control (POC),
+Value Area High/Low (VAH/VAL), High Volume Nodes (HVN), and Low Volume
+Nodes (LVN). These zones serve as institutional support and resistance
+for stop loss placement and target identification.
+
+---------- SIGNAL FUSION ENGINE ----------
+
+Each module produces an independent score (0-100). The fusion engine
+combines them using configurable weights:
+
+  SignalScore = wA*ModuleA + wB*ModuleB + wC*ModuleC + wD*ModuleD + wE*ModuleE
+
+A trade executes only when:
+- SignalScore exceeds the entry threshold (default: 50)
+- A minimum number of modules confirm (default: 3 of 5)
+- Directional consensus is achieved (voting system)
+- A confirmed liquidity sweep has occurred
+- EMA 50/200 trend filter aligns (configurable)
+
+---------- RISK MANAGEMENT ----------
+
+- Kelly Criterion position sizing with configurable fraction
+- ATR-based dynamic stop loss (default: 2.5x ATR)
+- Three-tier take profit: TP1 (1.5 ATR), TP2 (3.0 ATR), TP3 (5.0 ATR)
+- Automatic partial close at TP1 and TP2 (33% each)
+- Breakeven move after 1R profit
+- ATR-based trailing stop
+- Daily loss limit (default: 3%)
+- Daily profit lock (default: 8%)
+- Peak equity drawdown protection (default: 8%)
+- Maximum spread filter
+- Trade cooldown between entries
+- Maximum daily trades limit
+
+---------- EXECUTION ENGINE ----------
+
+- Automatic broker fill type detection (FOK/IOC/RETURN)
+- Order retry logic (3 attempts on requote)
+- Slippage protection
+- ECN/STP compatible
+- Single-chart operation (no multi-chart required)
+
+---------- ADDITIONAL FEATURES ----------
+
+- Market regime classification (Strong Trend/Weak Trend/Range/High Volatility)
+- Regime-adaptive module weights
+- Economic calendar news filter (USD and EUR high-impact events)
+- Real-time on-chart dashboard displaying all module states
+- Weekend and session-time filters
+- Fully optimizable in MT5 Strategy Tester
+- Custom optimization criterion (Sharpe * PF * sqrt(Trades) * RecoveryFactor)
+
+---------- RECOMMENDED SETTINGS ----------
+
+Symbol: XAUUSD
+Timeframe: H1
+Minimum deposit: $1,000 (with 0.01 lot minimum)
+Recommended deposit: $5,000+
+Leverage: 1:100 or higher
+Broker: ECN/STP with low gold spreads (under 30 points)
+VPS: Recommended for consistent execution
+
+---------- INPUTS ----------
+
+The EA has over 60 configurable parameters organized into groups:
+- Session and Time filters
+- Module A: Liquidity Sweep parameters
+- Module B: Order Flow parameters
+- Module C: AMD Wyckoff parameters
+- Module D: Anchored VWAP parameters
+- Module E: Volume Profile parameters
+- Signal Fusion: weights, thresholds, trend filter
+- Risk Management: Kelly fraction, ATR multiples, limits
+- Breakeven and Trailing Stop
+- News Filter
+- Visualization and Dashboard
+
+Optimized .set files are included for XAUUSD H1.
+
+---------- IMPORTANT NOTES ----------
+
+- Past performance in backtesting does not indicate future results.
+- Always test on a demo account before live trading.
+- Risk management settings should be adjusted to your account size.
+- The EA is designed for XAUUSD but may work on other volatile instruments.
+- No DLL dependencies. No external API calls. Fully self-contained.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 5: SHORT DESCRIPTION (for search/preview)
+────────────────────────────────────────────────────────────────────────────────
+
+5-module institutional signal fusion EA for XAUUSD. Combines liquidity sweep
+detection, order flow analysis, Wyckoff AMD cycle, Anchored VWAP, and Volume
+Profile into a weighted scoring system with Kelly sizing and 3-tier TP.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 6: TAGS/KEYWORDS
+────────────────────────────────────────────────────────────────────────────────
+
+gold, xauusd, institutional, liquidity, sweep, order flow, wyckoff, vwap,
+volume profile, smart money, signal fusion, kelly criterion, atr
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 7: LOGO REQUIREMENTS
+────────────────────────────────────────────────────────────────────────────────
+
+Required sizes: 200x200 px, 140x140 px, 60x60 px
+Format: PNG (transparent or solid background)
+See: Logo_200x200.html (render in browser, screenshot to PNG)
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 8: SCREENSHOT LIST (up to 12)
+────────────────────────────────────────────────────────────────────────────────
+
+Capture these from MT5 with the EA running:
+
+Screenshot 1:  Dashboard overlay on XAUUSD H1 chart (full view)
+Screenshot 2:  Backtest equity curve (2+ years, smooth upward)
+Screenshot 3:  Strategy Tester report — summary statistics
+Screenshot 4:  Strategy Tester report — trade list sample
+Screenshot 5:  Chart with liquidity levels drawn (InpDrawLevels=true)
+Screenshot 6:  Chart with VWAP lines drawn (InpDrawVWAP=true)
+Screenshot 7:  Chart with Volume Profile overlay (InpDrawVP=true)
+Screenshot 8:  Dashboard close-up showing all 5 module scores
+Screenshot 9:  Dashboard close-up showing Next Trade section
+Screenshot 10: Optimization results in Strategy Tester
+Screenshot 11: Monthly profit breakdown (if available)
+Screenshot 12: Settings/Input panel showing organized parameter groups
+
+Guidelines:
+- Use "Black and White" chart color scheme
+- Minimum 720px on shortest side
+- Maximum 1920x1080, under 2MB each
+- All text must be in English and legible
+- Use blue for buy signals, red for sell signals
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 9: FILES TO INCLUDE IN SUBMISSION
+────────────────────────────────────────────────────────────────────────────────
+
+1. Claude MQL5EA.ex5         — Compiled EA (generated from MetaEditor)
+2. Claude MQL5EA.set         — Default XAUUSD H1 settings (included)
+3. LQS_Conservative.set      — Conservative risk profile (included)
+4. LQS_Aggressive.set        — Aggressive risk profile (included)
+
+Note: Source code (.mq5) is NOT uploaded to Market. Only compiled .ex5.
+      Additional .set files are embedded as resources or uploaded separately.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 10: VERSION INFORMATION
+────────────────────────────────────────────────────────────────────────────────
+
+Version: 3.00
+Copyright: Copyright 2026, Quant Advisor
+Link: https://www.mql5.com
+Description: LQS-AMD-VWAP v3.0 | XAUUSD H1
+
+================================================================================
+END OF LISTING PACKAGE
+================================================================================

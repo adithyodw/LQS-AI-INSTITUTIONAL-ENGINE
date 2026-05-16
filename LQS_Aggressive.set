@@ -1,0 +1,144 @@
+; LQS Institutional Flow Engine v3.0
+; AGGRESSIVE Risk Profile — XAUUSD H1
+; For accounts seeking higher returns with higher risk tolerance
+; Target: Profit Factor > 1.5, maximize absolute returns
+
+; === SESSION & TIME ===
+InpStartHour=6
+InpEndHour=22
+InpUseAsianSess=true
+InpAsianStart=0
+InpAsianEnd=7
+InpLondonHour=7
+InpNYHour=13
+InpNoWeekend=true
+InpTimerSecs=60
+
+; === MODULE A: LIQUIDITY SWEEP ===
+InpUsePrevDayHL=true
+InpUseRoundNums=true
+InpRoundStep=50.0
+InpSweepWickPct=10
+InpSweepRetracePct=30.0
+InpSweepConfBars=1
+InpSweepVolMult=1.0
+InpLiqLookback=35
+InpSweepMaxAge=20
+InpSweepDepthMin=0.0003
+InpMultiSweepBars=8
+
+; === MODULE B: ORDER FLOW ===
+InpDeltaLookback=25
+InpDivergThresh=8.0
+InpAbsorbBars=3
+InpAbsorbVolMult=1.1
+InpAbsorbMaxMove=0.6
+
+; === MODULE C: AMD WYCKOFF ===
+InpAccumLookback=20
+InpAccumRangeRatio=10.0
+InpSpringMult=0.5
+InpUpthrustMult=0.5
+InpManipVolMult=1.1
+InpCOPressMin=40.0
+InpVAPct=70.0
+InpADLPeriod=15.0
+InpPhaseDurMin=1.0
+
+; === MODULE D: ANCHORED VWAP ===
+InpVWAP_Asian=true
+InpVWAP_London=true
+InpVWAP_NY=true
+InpVWAP_Week=true
+InpVWAP_Day=true
+InpVWAP_Swing=true
+InpVWAP_POC=false
+InpVWAP_MaxBars=300
+InpVWAP_ClsDist=1.5
+InpVWAP_ClsMin=2
+InpVWAP_DevThresh=1.5
+InpVWAP_LevelTol=1.2
+InpVWAP_SlopeLen=8
+
+; === MODULE E: VOLUME PROFILE ===
+InpVP_Buckets=60
+InpVP_RollingLen=40
+InpVP_HVN_Pct=70.0
+InpVP_LVN_Pct=30.0
+InpVP_MaxHVN=5
+InpVP_MaxLVN=5
+InpVP_POC_Tol=1.2
+InpVP_VAL_Tol=1.2
+
+; === SIGNAL FUSION ===
+InpScoreEntry=42.0
+InpMinModules=2
+InpModuleMinScore=20.0
+InpWt_A=40.0
+InpWt_B=20.0
+InpWt_C=20.0
+InpWt_D=10.0
+InpWt_E=10.0
+InpAdaptWeights=false
+InpMLHistory=30
+InpUseTrendFilter=true
+
+; === MULTI-TIMEFRAME ===
+InpUseMTF=false
+InpEntryTF=2
+InpHTF_Input=0
+InpMTFMult=1.1
+
+; === MARKET REGIME ===
+InpRegimeLB=40
+InpTrendADX=20.0
+InpStrongADX=35.0
+InpVolPctile=75.0
+
+; === RISK MANAGEMENT (AGGRESSIVE) ===
+InpKellyFrac=0.30
+InpRiskMax=2.5
+InpRiskMin=0.50
+InpSL_ATR=2.0
+InpTP1_ATR=1.5
+InpTP2_ATR=3.5
+InpTP3_ATR=6.0
+InpTP1_Pct=30.0
+InpTP2_Pct=30.0
+InpDailyLossLim=5.0
+InpDailyProfLock=12.0
+InpMaxOpen=1
+InpMaxDailyTrades=5
+InpMaxSpread=180.0
+InpSlippage=25.0
+InpCooldownBars=2
+InpMaxDDPct=12.0
+
+; === BREAKEVEN & TRAILING ===
+InpUseBE=true
+InpBE_RMult=1.2
+InpUseTrail=true
+InpTrailStart=2.0
+InpTrailATR=1.5
+
+; === NEWS FILTER ===
+InpUseNews=true
+InpNewsBefore=20
+InpNewsAfter=10
+InpNewsHighOnly=true
+InpNewsUSD=true
+InpNewsEUR=true
+InpNewsScan=10
+
+; === VISUALIZATION ===
+InpShowDash=true
+InpDrawLevels=false
+InpDrawPhase=false
+InpDrawVWAP=false
+InpDrawVP=false
+
+; === SYSTEM ===
+InpMagic=520302
+InpCmt=LQS5A
+InpVerbose=false
+InpOptimMode=false

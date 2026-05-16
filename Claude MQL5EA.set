@@ -1,0 +1,148 @@
+; LQS-AMD-VWAP v4.0 Optimized Settings for XAUUSD H1
+; 12 bug fixes, 18 advanced upgrades
+; Corrected R:R, entropy filter, regime-aware sizing, stale exit
+
+; === SESSION & TIME ===
+InpStartHour=7
+InpEndHour=21
+InpUseAsianSess=true
+InpAsianStart=0
+InpAsianEnd=7
+InpLondonHour=7
+InpNYHour=13
+InpNoWeekend=true
+InpTimerSecs=60
+
+; === MODULE A: LIQUIDITY SWEEP ===
+InpUsePrevDayHL=true
+InpUseRoundNums=true
+InpRoundStep=50.0
+InpSweepWickPct=15
+InpSweepRetracePct=35.0
+InpSweepConfBars=1
+InpSweepVolMult=1.1
+InpLiqLookback=30
+InpSweepMaxAge=15
+InpSweepDepthMin=0.0003
+InpMultiSweepBars=6
+
+; === MODULE B: ORDER FLOW ===
+InpDeltaLookback=30
+InpDivergThresh=10.0
+InpAbsorbBars=3
+InpAbsorbVolMult=1.3
+InpAbsorbMaxMove=0.5
+
+; === MODULE C: AMD WYCKOFF ===
+InpAccumLookback=20
+InpAccumRangeRatio=8.0
+InpSpringMult=0.4
+InpUpthrustMult=0.4
+InpManipVolMult=1.2
+InpCOPressMin=45.0
+InpVAPct=70.0
+InpADLPeriod=15.0
+InpPhaseDurMin=2.0
+
+; === MODULE D: ANCHORED VWAP ===
+InpVWAP_Asian=true
+InpVWAP_London=true
+InpVWAP_NY=true
+InpVWAP_Week=true
+InpVWAP_Day=true
+InpVWAP_Swing=true
+InpVWAP_POC=false
+InpVWAP_MaxBars=300
+InpVWAP_ClsDist=1.5
+InpVWAP_ClsMin=2
+InpVWAP_DevThresh=1.5
+InpVWAP_LevelTol=1.0
+InpVWAP_SlopeLen=8
+
+; === MODULE E: VOLUME PROFILE ===
+InpVP_Buckets=60
+InpVP_RollingLen=40
+InpVP_HVN_Pct=70.0
+InpVP_LVN_Pct=30.0
+InpVP_MaxHVN=5
+InpVP_MaxLVN=5
+InpVP_POC_Tol=1.0
+InpVP_VAL_Tol=1.0
+
+; === SIGNAL FUSION ===
+InpScoreEntry=50.0
+InpMinModules=3
+InpModuleMinScore=25.0
+InpWt_A=35.0
+InpWt_B=20.0
+InpWt_C=20.0
+InpWt_D=15.0
+InpWt_E=10.0
+InpAdaptWeights=false
+InpMLHistory=30
+InpUseTrendFilter=true
+InpEntropyThresh=0.12
+
+; === MULTI-TIMEFRAME ===
+InpUseMTF=false
+InpEntryTF=2
+InpHTF_Input=0
+InpMTFMult=1.1
+
+; === MARKET REGIME ===
+InpRegimeLB=40
+InpTrendADX=20.0
+InpStrongADX=35.0
+InpVolPctile=75.0
+
+; === RISK MANAGEMENT ===
+InpKellyFrac=0.25
+InpRiskMax=1.5
+InpRiskMin=0.25
+InpSL_ATR=2.0
+InpTP1_ATR=2.0
+InpTP2_ATR=3.5
+InpTP3_ATR=5.5
+InpTP1_Pct=30.0
+InpTP2_Pct=35.0
+InpDailyLossLim=3.0
+InpDailyProfLock=8.0
+InpMaxOpen=1
+InpMaxDailyTrades=4
+InpMaxSpread=120.0
+InpSlippage=15.0
+InpCooldownBars=3
+InpMaxDDPct=6.0
+InpKellyMinTrades=15
+InpRegimeRiskMult=0.6
+InpStaleExitBars=10
+InpConsecutiveLossScale=0.5
+
+; === BREAKEVEN & TRAILING ===
+InpUseBE=true
+InpBE_RMult=1.0
+InpUseTrail=true
+InpTrailStart=2.0
+InpTrailATR=1.2
+
+; === NEWS FILTER ===
+InpUseNews=true
+InpNewsBefore=30
+InpNewsAfter=15
+InpNewsHighOnly=true
+InpNewsUSD=true
+InpNewsEUR=true
+InpNewsScan=10
+
+; === VISUALIZATION ===
+InpShowDash=true
+InpDrawLevels=false
+InpDrawPhase=false
+InpDrawVWAP=false
+InpDrawVP=false
+
+; === SYSTEM ===
+InpMagic=520400
+InpCmt=LQS5
+InpVerbose=false
+InpOptimMode=false

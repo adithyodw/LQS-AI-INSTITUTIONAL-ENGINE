@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+
+  .logo-200 { width: 200px; height: 200px; position: relative; overflow: hidden; border-radius: 16px; background: linear-gradient(145deg, #0a1628 0%, #0d2137 40%, #112d4e 100%); font-family: 'Segoe UI', Arial, sans-serif; }
+  .logo-140 { width: 140px; height: 140px; position: relative; overflow: hidden; border-radius: 12px; background: linear-gradient(145deg, #0a1628 0%, #0d2137 40%, #112d4e 100%); font-family: 'Segoe UI', Arial, sans-serif; margin-left: 40px; }
+  .logo-60  { width: 60px;  height: 60px;  position: relative; overflow: hidden; border-radius: 6px;  background: linear-gradient(145deg, #0a1628 0%, #0d2137 40%, #112d4e 100%); font-family: 'Segoe UI', Arial, sans-serif; margin-left: 40px; }
+
+  /* === 200x200 elements === */
+  .l2 .top-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #c9a84c, #e8c65a, #c9a84c); }
+  .l2 .bot-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #c9a84c, #e8c65a, #c9a84c); }
+  .l2 .badge { position: absolute; top: 14px; left: 14px; background: #c9a84c; color: #0a1628; font-size: 8px; font-weight: 800; letter-spacing: 1.5px; padding: 3px 8px; border-radius: 2px; text-transform: uppercase; }
+  .l2 .title { position: absolute; top: 42px; left: 14px; right: 14px; }
+  .l2 .title .lqs { font-size: 36px; font-weight: 800; color: #ffffff; letter-spacing: -1px; line-height: 1; }
+  .l2 .title .sub { font-size: 11px; font-weight: 600; color: #c9a84c; letter-spacing: 2px; margin-top: 2px; text-transform: uppercase; }
+
+  /* Chart visualization */
+  .l2 .chart { position: absolute; bottom: 48px; left: 14px; right: 14px; height: 68px; }
+  .l2 .chart svg { width: 100%; height: 100%; }
+
+  /* Module indicators */
+  .l2 .modules { position: absolute; bottom: 14px; left: 14px; right: 14px; display: flex; gap: 4px; }
+  .l2 .mod { flex: 1; height: 18px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; color: #0a1628; letter-spacing: 0.5px; }
+  .l2 .mod.a { background: #4ecdc4; }
+  .l2 .mod.b { background: #45b7d1; }
+  .l2 .mod.c { background: #f7dc6f; }
+  .l2 .mod.d { background: #bb8fce; }
+  .l2 .mod.e { background: #82e0aa; }
+
+  /* Bottom label */
+  .l2 .bottom-label { position: absolute; bottom: 36px; left: 14px; font-size: 7px; color: #5a7a9a; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* === 140x140 elements === */
+  .l1 .top-bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #c9a84c, #e8c65a, #c9a84c); }
+  .l1 .bot-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #c9a84c, #e8c65a, #c9a84c); }
+  .l1 .title { position: absolute; top: 16px; left: 10px; right: 10px; }
+  .l1 .title .lqs { font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: -1px; line-height: 1; }
+  .l1 .title .sub { font-size: 8px; font-weight: 600; color: #c9a84c; letter-spacing: 1.5px; margin-top: 2px; text-transform: uppercase; }
+  .l1 .chart { position: absolute; bottom: 34px; left: 10px; right: 10px; height: 48px; }
+  .l1 .chart svg { width: 100%; height: 100%; }
+  .l1 .modules { position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; gap: 3px; }
+  .l1 .mod { flex: 1; height: 14px; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 6px; font-weight: 700; color: #0a1628; }
+  .l1 .mod.a { background: #4ecdc4; }
+  .l1 .mod.b { background: #45b7d1; }
+  .l1 .mod.c { background: #f7dc6f; }
+  .l1 .mod.d { background: #bb8fce; }
+  .l1 .mod.e { background: #82e0aa; }
+
+  /* === 60x60 elements === */
+  .l0 .top-bar { position: absolute; top: 0; left: 0; right: 0; height: 1px; background: #c9a84c; }
+  .l0 .bot-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: #c9a84c; }
+  .l0 .title { position: absolute; top: 8px; left: 6px; }
+  .l0 .title .lqs { font-size: 14px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; line-height: 1; }
+  .l0 .title .sub { font-size: 4px; font-weight: 600; color: #c9a84c; letter-spacing: 1px; margin-top: 1px; text-transform: uppercase; }
+  .l0 .modules { position: absolute; bottom: 5px; left: 5px; right: 5px; display: flex; gap: 1px; }
+  .l0 .mod { flex: 1; height: 6px; border-radius: 1px; }
+  .l0 .mod.a { background: #4ecdc4; }
+  .l0 .mod.b { background: #45b7d1; }
+  .l0 .mod.c { background: #f7dc6f; }
+  .l0 .mod.d { background: #bb8fce; }
+  .l0 .mod.e { background: #82e0aa; }
+
+  .container { display: flex; align-items: center; gap: 0; }
+
+  h3 { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin-bottom: 8px; font-size: 12px; text-align: center; }
+  .wrap { text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 200x200 -->
+  <div class="wrap">
+    <h3>200 x 200</h3>
+    <div class="logo-200 l2">
+      <div class="top-bar"></div>
+      <div class="bot-bar"></div>
+      <div class="badge">INSTITUTIONAL</div>
+      <div class="title">
+        <div class="lqs">LQS</div>
+        <div class="sub">Flow Engine</div>
+      </div>
+      <div class="bottom-label">5-Module Signal Fusion</div>
+      <div class="chart">
+        <svg viewBox="0 0 172 68" preserveAspectRatio="none">
+          <!-- Grid lines -->
+          <line x1="0" y1="17" x2="172" y2="17" stroke="#1a3550" stroke-width="0.5"/>
+          <line x1="0" y1="34" x2="172" y2="34" stroke="#1a3550" stroke-width="0.5"/>
+          <line x1="0" y1="51" x2="172" y2="51" stroke="#1a3550" stroke-width="0.5"/>
+          <!-- Sweep event marker -->
+          <circle cx="86" cy="58" r="4" fill="none" stroke="#c9a84c" stroke-width="1" opacity="0.6"/>
+          <circle cx="86" cy="58" r="1.5" fill="#c9a84c" opacity="0.8"/>
+          <!-- Price line (showing sweep reversal pattern) -->
+          <polyline points="0,40 12,38 24,35 36,32 48,28 56,24 64,20 72,16 80,12 86,8 90,5 93,10 96,18 100,22 108,26 116,24 124,20 132,16 140,14 148,12 156,10 164,8 172,6" fill="none" stroke="#4ecdc4" stroke-width="1.5" opacity="0.9"/>
+          <!-- Volume bars -->
+          <rect x="2" y="60" width="6" height="6" fill="#45b7d1" opacity="0.3" rx="1"/>
+          <rect x="14" y="58" width="6" height="8" fill="#45b7d1" opacity="0.3" rx="1"/>
+          <rect x="26" y="56" width="6" height="10" fill="#45b7d1" opacity="0.3" rx="1"/>
+          <rect x="38" y="54" width="6" height="12" fill="#45b7d1" opacity="0.4" rx="1"/>
+          <rect x="50" y="52" width="6" height="14" fill="#45b7d1" opacity="0.4" rx="1"/>
+          <rect x="62" y="48" width="6" height="18" fill="#45b7d1" opacity="0.5" rx="1"/>
+          <rect x="74" y="44" width="6" height="22" fill="#c9a84c" opacity="0.6" rx="1"/>
+          <rect x="86" y="40" width="6" height="26" fill="#c9a84c" opacity="0.8" rx="1"/>
+          <rect x="98" y="50" width="6" height="16" fill="#4ecdc4" opacity="0.5" rx="1"/>
+          <rect x="110" y="52" width="6" height="14" fill="#4ecdc4" opacity="0.4" rx="1"/>
+          <rect x="122" y="54" width="6" height="12" fill="#4ecdc4" opacity="0.4" rx="1"/>
+          <rect x="134" y="56" width="6" height="10" fill="#4ecdc4" opacity="0.3" rx="1"/>
+          <rect x="146" y="58" width="6" height="8" fill="#4ecdc4" opacity="0.3" rx="1"/>
+          <rect x="158" y="60" width="6" height="6" fill="#4ecdc4" opacity="0.3" rx="1"/>
+        </svg>
+      </div>
+      <div class="modules">
+        <div class="mod a">LIQ</div>
+        <div class="mod b">OFR</div>
+        <div class="mod c">AMD</div>
+        <div class="mod d">VWP</div>
+        <div class="mod e">VOL</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 140x140 -->
+  <div class="wrap">
+    <h3>140 x 140</h3>
+    <div class="logo-140 l1">
+      <div class="top-bar"></div>
+      <div class="bot-bar"></div>
+      <div class="title">
+        <div class="lqs">LQS</div>
+        <div class="sub">Flow Engine</div>
+      </div>
+      <div class="chart">
+        <svg viewBox="0 0 120 48" preserveAspectRatio="none">
+          <line x1="0" y1="16" x2="120" y2="16" stroke="#1a3550" stroke-width="0.5"/>
+          <line x1="0" y1="32" x2="120" y2="32" stroke="#1a3550" stroke-width="0.5"/>
+          <polyline points="0,36 15,32 30,28 45,22 55,16 60,10 65,6 70,14 80,20 90,16 100,12 110,8 120,6" fill="none" stroke="#4ecdc4" stroke-width="1.5" opacity="0.9"/>
+          <rect x="56" y="36" width="8" height="10" fill="#c9a84c" opacity="0.7" rx="1"/>
+        </svg>
+      </div>
+      <div class="modules">
+        <div class="mod a">A</div>
+        <div class="mod b">B</div>
+        <div class="mod c">C</div>
+        <div class="mod d">D</div>
+        <div class="mod e">E</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 60x60 -->
+  <div class="wrap">
+    <h3>60 x 60</h3>
+    <div class="logo-60 l0">
+      <div class="top-bar"></div>
+      <div class="bot-bar"></div>
+      <div class="title">
+        <div class="lqs">LQS</div>
+        <div class="sub">FLOW ENGINE</div>
+      </div>
+      <div class="modules">
+        <div class="mod a"></div>
+        <div class="mod b"></div>
+        <div class="mod c"></div>
+        <div class="mod d"></div>
+        <div class="mod e"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
