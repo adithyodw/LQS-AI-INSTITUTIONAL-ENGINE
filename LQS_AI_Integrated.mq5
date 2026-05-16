@@ -1997,6 +1997,21 @@ void ExecuteEntry()
       { double mn=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
         Log(StringFormat("[EXEC] Lot=%.5f is zero/negative — forcing min lot %.2f",g_sig.lot,mn));
         g_sig.lot=mn; }  // force to minimum rather than skip entirely
+
+    // Margin validation: reduce lot if account lacks free margin
+    double requiredMargin=g_sym.Ask()*g_sig.lot*SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE)/SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE);
+    double freeMgn=AccountInfoDouble(ACCOUNT_FREEMARGIN);
+    if(requiredMargin>freeMgn&&freeMgn>0)
+      { double maxLot=NormLot((freeMgn*0.95)/((g_sym.Ask()*SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE))/SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE)));
+        double minLot=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
+        if(maxLot>=minLot)
+          { Log(StringFormat("[EXEC] Insufficient margin (%.2f<%2f) — reducing lot from %.3f to %.3f",
+              freeMgn,requiredMargin,g_sig.lot,maxLot));
+            g_sig.lot=maxLot; }
+        else
+          { Log(StringFormat("[EXEC] Insufficient margin even for min lot (%.2f needed) — SKIPPING",requiredMargin));
+            return; } }
+
     double stopLvl=(double)SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL)*_Point;
     if(MathAbs(g_sig.entry-g_sig.sl)<stopLvl)
       {Log(StringFormat("SL too close: %.1f < %.1f pts",MathAbs(g_sig.entry-g_sig.sl)/_Point,stopLvl/_Point));return;}
