@@ -2070,24 +2070,25 @@ void ManageOpenTrade()
             if(ib&&vs2>nsl) nsl=vs2;
             if(!ib&&vs2<nsl&&nsl>0) nsl=vs2;}}
 
-       // Safety checks before modification
+       // Safety checks before modification - STRICT to prevent MT5 rejections
        if(nsl!=csl&&nsl!=0.0)
-         { // Check 1: New SL must be at least minPriceDist away from current price
-           bool slTooClose=(ib&&nsl>cur-minPriceDist)||(!ib&&nsl<cur+minPriceDist);
+         { // Check 1: New SL must be at least 1.0 ATR away from current price (STRICT)
+           double strictPriceDist=g_ATR*1.0;
+           bool slTooClose=(ib&&nsl>cur-strictPriceDist)||(!ib&&nsl<cur+strictPriceDist);
 
-           // Check 2: SL and TP must have minimum separation (at least 0.5 ATR)
+           // Check 2: SL and TP must have minimum 1.0 ATR separation (STRICT - was 0.5)
            double slTpDist=ctp>0?MathAbs(ctp-nsl):999999;
-           bool slTpTooClose=(slTpDist<g_ATR*0.5);
+           bool slTpTooClose=(slTpDist<g_ATR*1.0);
 
-           // Check 3: Ensure reasonable SL distance from entry
-           double slFromEntry=MathAbs(nsl-opx);
-           bool slTooTight=(slFromEntry<_Point*5);
+           // Check 3: Don't trail if we're already too close to TP (2 ATR threshold)
+           bool nearTP=(ctp>0&&MathAbs(csl-ctp)<g_ATR*2.0);
 
-           if(!slTooClose&&!slTpTooClose&&!slTooTight)
+           if(!slTooClose&&!slTpTooClose&&!nearTP)
              g_tr.PositionModify(g_pos.Ticket(),nsl,ctp);
            else if(InpVerbose)
-             Log(StringFormat("[MODIFY BLOCKED] tooClose=%s slTpClose=%s tooTight=%s nsl=%.5f cur=%.5f ctp=%.5f",
-                 B2S(slTooClose),B2S(slTpTooClose),B2S(slTooTight),nsl,cur,ctp));
+             Log(StringFormat("[MODIFY SKIPPED] close=%s|%.5f sep=%s|%.5f nearTP=%s dist=%.5f nsl=%.5f ctp=%.5f",
+                 B2S(slTooClose),strictPriceDist,B2S(slTpTooClose),g_ATR*1.0,B2S(nearTP),
+                 ctp>0?MathAbs(csl-ctp):0,nsl,ctp));
          }
     } }
 
