@@ -2000,7 +2000,7 @@ void ExecuteEntry()
 
     // Margin validation: reduce lot if account lacks free margin
     double requiredMargin=g_sym.Ask()*g_sig.lot*SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE)/SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE);
-    double freeMgn=AccountInfoDouble(ACCOUNT_FREEMARGIN);
+    double freeMgn=AccountInfoDouble(ACCOUNT_MARGIN_FREE);
     if(requiredMargin>freeMgn&&freeMgn>0)
       { double maxLot=NormLot((freeMgn*0.95)/((g_sym.Ask()*SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE))/SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE)));
         double minLot=SymbolInfoDouble(_Symbol,SYMBOL_VOLUME_MIN);
